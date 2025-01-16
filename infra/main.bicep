@@ -68,10 +68,45 @@ var workloadIdentityName = '${abbrs.managedIdentityUserAssignedIdentities}${reso
 var aksServiceAccountName = '${aksNamespace}-workload-sa'
 var workloadIdentitySubject = 'system:serviceaccount:${aksNamespace}:${aksServiceAccountName}'
 @description('Role definitions for various roles that will be assigned at deployment time. Learn more: https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles')
-var roles = {
+// var roles = {
+  // storageBlobDataContributor: resourceId(
+  //   'Microsoft.Authorization/roleDefinitions',
+  //   'ba92f5b4-2d11-453d-a403-e96b0029c9fe'  // Storage Blob Data Contributor Role
+  // )
+  // aiSearchContributor: resourceId(
+  //   'Microsoft.Authorization/roleDefinitions',
+  //   'b24988ac-6180-42a0-ab88-20f7382dd24c'  // AI Search Contributor Role
+  // )
+//   aiSearchIndexDataContributor: resourceId(
+//     'Microsoft.Authorization/roleDefinitions',
+//     '8ebe5a00-799e-43f5-93ac-243d3dce84a7'  // AI Search Index Data Contributor Role
+//   )
+//   aiSearchIndexDataReader: resourceId (
+//     'Microsoft.Authorization/roleDefinitions',
+//     '1407120a-92aa-4202-b7e9-c0e197c71c8f'  // AI Search Index Data Reader Role
+//   )
+//   privateDnsZoneContributor: resourceId (
+//     'Microsoft.Authorization/roleDefinitions',
+//     'b12aa53e-6015-4669-85d0-8515ebb3ae7f'  // Private DNS Zone Contributor Role
+//   )
+//   networkContributor: resourceId (
+//     'Microsoft.Authorization/roleDefinitions',
+//     '4d97b98b-1d4f-4787-a291-c67834d212e7'  // Network Contributor Role
+//   )
+//   cognitiveServicesOpenaiContributor: resourceId (
+//     'Microsoft.Authorization/roleDefinitions',
+//     'a001fd3d-188f-4b5d-821b-7da978bf7442'  // Cognitive Services OpenAI Contributor
+//   )
+//   acrPull: resourceId (
+//     'Microsoft.Authorization/roleDefinitions',
+//     '7f951dda-4ed3-4680-a7ca-43fe172d538d'  // ACR Pull Role
+//   )
+// }
+
+var rolesToAssign = {
   storageBlobDataContributor: resourceId(
     'Microsoft.Authorization/roleDefinitions',
-    'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    'ba92f5b4-2d11-453d-a403-e96b0029c9fe'  // Storage Blob Data Contributor Role
   )
   aiSearchContributor: resourceId(
     'Microsoft.Authorization/roleDefinitions',
@@ -121,6 +156,14 @@ module nsg 'core/vnet/nsg.bicep' = {
   }
 }
 
+module aksnsg 'core/vnet/aksnsg.bicep' = {
+  name: 'aksnsg'
+  params: {
+    nsgName: '${abbrs.networkNetworkSecurityGroups}${resourceBaseNameFinal}-aks'
+    location: location
+  }
+}
+
 resource vnet 'Microsoft.Network/virtualNetworks@2024-01-01' = {
   name: '${abbrs.networkVirtualNetworks}${resourceBaseNameFinal}'
   location: location
@@ -152,6 +195,9 @@ resource vnet 'Microsoft.Network/virtualNetworks@2024-01-01' = {
         name: '${abbrs.networkVirtualNetworksSubnets}aks'
         properties: {
           addressPrefix: '10.1.1.0/24'
+          networkSecurityGroup: {
+            id: aksnsg.outputs.id
+          }
           serviceEndpoints: [
             {
               service: 'Microsoft.Storage'
@@ -175,11 +221,11 @@ module acr 'core/acr/acr.bicep' = {
     registryName: !empty(acrName) ? acrName : '${abbrs.containerRegistryRegistries}${resourceBaseNameFinal}'
     location: location
     roleAssignments: [
-      {
-        principalId: aks.outputs.kubeletPrincipalId
-        principalType: 'ServicePrincipal'
-        roleDefinitionId: roles.acrPull
-      }
+      // {
+      //   principalId: aks.outputs.kubeletPrincipalId
+      //   principalType: 'ServicePrincipal'
+      //   roleDefinitionId: roles.acrPull
+      // }
     ]
   }
 }
@@ -197,16 +243,16 @@ module aks 'core/aks/aks.bicep' = {
     subnetId: vnet.properties.subnets[1].id // aks subnet
     privateDnsZoneName: privateDnsZone.outputs.name
     ingressRoleAssignments: [
-      {
-        principalType: 'ServicePrincipal'
-        roleDefinitionId: roles.privateDnsZoneContributor
-      }
+      // {
+      //   principalType: 'ServicePrincipal'
+      //   roleDefinitionId: roles.privateDnsZoneContributor
+      // }
     ]
     systemRoleAssignments: [
-      {
-        principalType: 'ServicePrincipal'
-        roleDefinitionId: roles.networkContributor
-      }
+      // {
+      //   principalType: 'ServicePrincipal'
+      //   roleDefinitionId: roles.networkContributor
+      // }
     ]
   }
 }
@@ -228,21 +274,21 @@ module aiSearch 'core/ai-search/ai-search.bicep' = {
     location: location
     publicNetworkAccess: enablePrivateEndpoints ? 'disabled' : 'enabled'
     roleAssignments: [
-      {
-        principalId: workloadIdentity.outputs.principalId
-        principalType: 'ServicePrincipal'
-        roleDefinitionId: roles.aiSearchContributor
-      }
-      {
-        principalId: workloadIdentity.outputs.principalId
-        principalType: 'ServicePrincipal'
-        roleDefinitionId: roles.aiSearchIndexDataContributor
-      }
-      {
-        principalId: workloadIdentity.outputs.principalId
-        principalType: 'ServicePrincipal'
-        roleDefinitionId: roles.aiSearchIndexDataReader
-      }
+      // {
+      //   principalId: workloadIdentity.outputs.principalId
+      //   principalType: 'ServicePrincipal'
+      //   roleDefinitionId: roles.aiSearchContributor
+      // }
+      // {
+      //   principalId: workloadIdentity.outputs.principalId
+      //   principalType: 'ServicePrincipal'
+      //   roleDefinitionId: roles.aiSearchIndexDataContributor
+      // }
+      // {
+      //   principalId: workloadIdentity.outputs.principalId
+      //   principalType: 'ServicePrincipal'
+      //   roleDefinitionId: roles.aiSearchIndexDataReader
+      // }
     ]
   }
 }
@@ -254,13 +300,13 @@ module storage 'core/storage/storage.bicep' = {
     location: location
     publicNetworkAccess: enablePrivateEndpoints ? 'Disabled' : 'Enabled'
     tags: tags
-    roleAssignments: [
-      {
-        principalId: workloadIdentity.outputs.principalId
-        principalType: 'ServicePrincipal'
-        roleDefinitionId: roles.storageBlobDataContributor
-      }
-    ]
+    // roleAssignments: [
+    //   {
+    //     principalId: workloadIdentity.outputs.principalId
+    //     principalType: 'ServicePrincipal'
+    //     roleDefinitionId: roles.storageBlobDataContributor
+    //   }
+    // ]
     deleteRetentionPolicy: {
       enabled: true
       days: 5
@@ -416,3 +462,76 @@ output azure_private_dns_zones array = enablePrivateEndpoints ? union(
   privatelinkPrivateDns.outputs.privateDnsZones,
   [privateDnsZone.outputs.name]
 ) : []
+
+output required_roleAssignments array = [
+  {
+    scope: {
+      resourceName: storage.outputs.name
+      resourceId: storage.outputs.id
+    }
+    principalId: workloadIdentity.outputs.principalId
+    principalType: 'ServicePrincipal'
+    rolename: 'Storage Blob Data Contributor'
+    roleDefinitionId: rolesToAssign.storageBlobDataContributor
+  }
+  {
+    scope: {
+      resourceName: aiSearch.outputs.name
+      resourceId: aiSearch.outputs.id
+    }
+    principalId: workloadIdentity.outputs.principalId
+    principalType: 'ServicePrincipal'
+    rolename: 'AI Search Contributor'
+    roleDefinitionId: rolesToAssign.aiSearchContributor
+  }
+  {
+    scope:{
+      resourceName: aiSearch.outputs.name
+      resourceId: aiSearch.outputs.id
+    }
+    principalId: workloadIdentity.outputs.principalId
+    principalType: 'ServicePrincipal'
+    rolename: 'AI Search Index Data Contributor'
+    roleDefinitionId: rolesToAssign.aiSearchIndexDataContributor
+  }
+  {
+    scope:{
+      resourceName: aiSearch.outputs.name
+      resourceId: aiSearch.outputs.id
+    }
+    principalId: workloadIdentity.outputs.principalId
+    principalType: 'ServicePrincipal'
+    rolename: 'AI Search Index Data Reader'
+    roleDefinitionId: rolesToAssign.aiSearchIndexDataReader
+  }
+  {
+    scope:{
+      resourceName: privateDnsZone.outputs.name
+      resourceId: privateDnsZone.outputs.id
+    }
+    principalId: aks.outputs.webappRoutingIdentityPrincipalId
+    principalType: 'ServicePrincipal'
+    rolename: 'Private DNS Zone Contributor'
+    roledefinitionId: rolesToAssign.privateDnsZoneContributor
+  }
+  {
+    scope: {
+      resourceName: resourceGroup().name
+      resourceId: resourceGroup().id
+    }
+    principalId: aks.outputs.systemIdentityPrincipalId
+    principalType: 'ServicePrincipal'
+    rolename: 'Network Contributor'
+    roleDefinitionId: rolesToAssign.networkContributor
+  }
+  {
+    scope: {
+      resourceName: acr.outputs.name
+      resourceId: acr.outputs.id
+    }
+    principalId: aks.outputs.kubeletPrincipalId
+    principalType: 'ServicePrincipal'
+    rolename: 'ACR Pull'
+    roleDefinitionId: rolesToAssign.acrPull
+  }
+]

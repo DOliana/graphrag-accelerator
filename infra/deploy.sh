@@ -362,8 +362,18 @@ deployAzureResources () {
     exitIfValueEmpty "$AZURE_DEPLOY_RESULTS" "Error deploying Azure resources..."
     AZURE_OUTPUTS=$(jq -r .properties.outputs <<< $AZURE_DEPLOY_RESULTS)
     exitIfCommandFailed $? "Error parsing outputs from Azure deployment..."
+
+    echo "Azure resources deployed successfully."
     exitIfValueEmpty "$AZURE_OUTPUTS" "Error parsing outputs from Azure deployment..."
+
+    assignRequiredRoles
     assignAOAIRoleToManagedIdentity
+
+    if [ $SKIP_ROLE_ASSIGNMENTS -eq 0 ]; then
+        echo "STOP: Role assignments have not been made. Please review the required assignments before proceeding."
+        echo "Press any key to continue (CTRL+C to exit)..."
+        read -n 1 -s
+    fi
 }
 
 validateSKUs() {
@@ -415,16 +425,47 @@ checkSKUQuotas() {
     printf "Done.\n"
 }
 
+assignRequiredRoles() {
+    echo "Assigning required roles... "
+    local roleAssignments=$(jq -r .required_roleAssignments.value <<< $AZURE_OUTPUTS)
+
+    # use this to output the required role assignments and do them manually
+    # echo "required role assignments:"
+    # echo "$roleAssignments"
+
+    echo "$roleAssignments" | jq -c '.[]' | while read role; do
+        local principalId=$(echo "$role" | jq -r '.principalId')
+        local scope=$(echo "$role" | jq -r '.scope.resourceId')
+        local roleId=$(echo "$role" | jq -r '.roleDefinitionId')
+
+        if [ $SKIP_ROLE_ASSIGNMENTS -eq 0 ]; then
+            echo "- Assigning role $roleId to principal $principalId at scope $scope"
+            az role assignment create --only-show-errors \
+                --role "$roleId" \
+                --assignee "$principalId" \
+                --scope "$scope" > /dev/null 2>&1
+            exitIfCommandFailed $? "Error assigning role to service principal, exiting..."
+        else
+            echo "- Manual role assignment required: Assign role $roleId to principal $principalId at scope $scope"
+        fi
+    done
+}
+
 assignAOAIRoleToManagedIdentity() {
-    printf "Assigning 'Cognitive Services OpenAI Contributor' role to managed identity... "
+    echo "Assigning 'Cognitive Services OpenAI Contributor' role to managed identity... "
     local servicePrincipalId=$(jq -r .azure_workload_identity_principal_id.value <<< $AZURE_OUTPUTS)
     exitIfValueEmpty "$servicePrincipalId" "Unable to parse service principal id from azure outputs, exiting..."
     local scope=$(az cognitiveservices account list --query "[?contains(properties.endpoint, '$GRAPHRAG_API_BASE')] | [0].id" -o tsv)
-    az role assignment create --only-show-errors \
-        --role "Cognitive Services OpenAI Contributor" \
-        --assignee "$servicePrincipalId" \
-        --scope "$scope" > /dev/null 2>&1
-    exitIfCommandFailed $? "Error assigning role to service principal, exiting..."
+    if [ $SKIP_ROLE_ASSIGNMENTS -eq 0 ]; then
+        echo "- Assigning role Cognitive Services OpenAI Contributor to principal $servicePrincipalId at scope $scope"
+        az role assignment create --only-show-errors \
+            --role "Cognitive Services OpenAI Contributor" \
+            --assignee "$servicePrincipalId" \
+            --scope "$scope" > /dev/null 2>&1
+        exitIfCommandFailed $? "Error assigning role to service principal, exiting..."
+    else
+        echo "- Manual role assignment required: Assign role Cognitive Services OpenAI Contributor to principal $servicePrincipalId at scope $scope"
+    fi
     printf "Done.\n"
 }
 
@@ -655,6 +696,7 @@ usage() {
    echo "  -d     Disable private endpoint usage."
    echo "  -g     Developer mode. Grants deployer of this script access to Azure Storage, AI Search, and CosmosDB. Will disable private endpoints (-d) and enable debug mode."
    echo "  -s     Skip validation of SKU availability and quota for a faster deployment"
+   echo "  -r     perform role assignments manually. the required role assignments will be outputted to the console and not applied."
    echo "  -p     A JSON file containing the deployment parameters (deploy.parameters.json)."
    echo
 }
@@ -664,8 +706,9 @@ usage() {
 ENABLE_PRIVATE_ENDPOINTS=true
 VALIDATE_SKUS_FLAG=true
 GRANT_DEV_ACCESS=0 # false
+SKIP_ROLE_ASSIGNMENTS=0 # false
 PARAMS_FILE=""
-while getopts ":dgsp:h" option; do
+while getopts ":dgsrp:h" option; do
     case "${option}" in
         d)
             ENABLE_PRIVATE_ENDPOINTS=false
@@ -676,6 +719,9 @@ while getopts ":dgsp:h" option; do
             ;;
         s)
             VALIDATE_SKUS_FLAG=false
+            ;;
+        r)
+            SKIP_ROLE_ASSIGNMENTS=1 # true
             ;;
         p)
             PARAMS_FILE=${OPTARG}

@@ -268,3 +268,6 @@ output managedResourceGroup string = aks.properties.nodeResourceGroup
 output controlPlaneFqdn string = aks.properties.fqdn
 output kubeletPrincipalId string = aks.properties.identityProfile.kubeletidentity.objectId
 output issuer string = aks.properties.oidcIssuerProfile.issuerURL
+
+output webappRoutingIdentityPrincipalId string = aks.properties.ingressProfile.webAppRouting.identity.objectId
+output systemIdentityPrincipalId string = aks.identity.principalId
