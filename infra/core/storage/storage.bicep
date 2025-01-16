@@ -21,7 +21,7 @@ param roleAssignments array = []
 
 param tags object = {}
 param allowBlobPublicAccess bool = false
-param allowCrossTenantReplication bool = true
+param allowCrossTenantReplication bool = false
 param allowSharedKeyAccess bool = false
 param defaultToOAuthAuthentication bool = false
 param deleteRetentionPolicy object = {}
