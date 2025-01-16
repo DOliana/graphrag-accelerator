@@ -369,7 +369,7 @@ deployAzureResources () {
     assignRequiredRoles
     assignAOAIRoleToManagedIdentity
 
-    if [ $SKIP_ROLE_ASSIGNMENTS -eq 0 ]; then
+    if [ $SKIP_ROLE_ASSIGNMENTS -eq 1 ]; then
         echo "STOP: Role assignments have not been made. Please review the required assignments before proceeding."
         echo "Press any key to continue (CTRL+C to exit)..."
         read -n 1 -s
