@@ -68,40 +68,6 @@ var workloadIdentityName = '${abbrs.managedIdentityUserAssignedIdentities}${reso
 var aksServiceAccountName = '${aksNamespace}-workload-sa'
 var workloadIdentitySubject = 'system:serviceaccount:${aksNamespace}:${aksServiceAccountName}'
 @description('Role definitions for various roles that will be assigned at deployment time. Learn more: https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles')
-// var roles = {
-  // storageBlobDataContributor: resourceId(
-  //   'Microsoft.Authorization/roleDefinitions',
-  //   'ba92f5b4-2d11-453d-a403-e96b0029c9fe'  // Storage Blob Data Contributor Role
-  // )
-  // aiSearchContributor: resourceId(
-  //   'Microsoft.Authorization/roleDefinitions',
-  //   'b24988ac-6180-42a0-ab88-20f7382dd24c'  // AI Search Contributor Role
-  // )
-//   aiSearchIndexDataContributor: resourceId(
-//     'Microsoft.Authorization/roleDefinitions',
-//     '8ebe5a00-799e-43f5-93ac-243d3dce84a7'  // AI Search Index Data Contributor Role
-//   )
-//   aiSearchIndexDataReader: resourceId (
-//     'Microsoft.Authorization/roleDefinitions',
-//     '1407120a-92aa-4202-b7e9-c0e197c71c8f'  // AI Search Index Data Reader Role
-//   )
-//   privateDnsZoneContributor: resourceId (
-//     'Microsoft.Authorization/roleDefinitions',
-//     'b12aa53e-6015-4669-85d0-8515ebb3ae7f'  // Private DNS Zone Contributor Role
-//   )
-//   networkContributor: resourceId (
-//     'Microsoft.Authorization/roleDefinitions',
-//     '4d97b98b-1d4f-4787-a291-c67834d212e7'  // Network Contributor Role
-//   )
-//   cognitiveServicesOpenaiContributor: resourceId (
-//     'Microsoft.Authorization/roleDefinitions',
-//     'a001fd3d-188f-4b5d-821b-7da978bf7442'  // Cognitive Services OpenAI Contributor
-//   )
-//   acrPull: resourceId (
-//     'Microsoft.Authorization/roleDefinitions',
-//     '7f951dda-4ed3-4680-a7ca-43fe172d538d'  // ACR Pull Role
-//   )
-// }
 
 var rolesToAssign = {
   storageBlobDataContributor: resourceId(
@@ -221,11 +187,6 @@ module acr 'core/acr/acr.bicep' = {
     registryName: !empty(acrName) ? acrName : '${abbrs.containerRegistryRegistries}${resourceBaseNameFinal}'
     location: location
     roleAssignments: [
-      // {
-      //   principalId: aks.outputs.kubeletPrincipalId
-      //   principalType: 'ServicePrincipal'
-      //   roleDefinitionId: roles.acrPull
-      // }
     ]
   }
 }
@@ -242,18 +203,6 @@ module aks 'core/aks/aks.bicep' = {
     logAnalyticsWorkspaceId: log.outputs.id
     subnetId: vnet.properties.subnets[1].id // aks subnet
     privateDnsZoneName: privateDnsZone.outputs.name
-    ingressRoleAssignments: [
-      // {
-      //   principalType: 'ServicePrincipal'
-      //   roleDefinitionId: roles.privateDnsZoneContributor
-      // }
-    ]
-    systemRoleAssignments: [
-      // {
-      //   principalType: 'ServicePrincipal'
-      //   roleDefinitionId: roles.networkContributor
-      // }
-    ]
   }
 }
 
@@ -273,23 +222,6 @@ module aiSearch 'core/ai-search/ai-search.bicep' = {
     name: !empty(aiSearchName) ? aiSearchName : '${abbrs.searchSearchServices}${resourceBaseNameFinal}'
     location: location
     publicNetworkAccess: enablePrivateEndpoints ? 'disabled' : 'enabled'
-    roleAssignments: [
-      // {
-      //   principalId: workloadIdentity.outputs.principalId
-      //   principalType: 'ServicePrincipal'
-      //   roleDefinitionId: roles.aiSearchContributor
-      // }
-      // {
-      //   principalId: workloadIdentity.outputs.principalId
-      //   principalType: 'ServicePrincipal'
-      //   roleDefinitionId: roles.aiSearchIndexDataContributor
-      // }
-      // {
-      //   principalId: workloadIdentity.outputs.principalId
-      //   principalType: 'ServicePrincipal'
-      //   roleDefinitionId: roles.aiSearchIndexDataReader
-      // }
-    ]
   }
 }
 
@@ -300,13 +232,6 @@ module storage 'core/storage/storage.bicep' = {
     location: location
     publicNetworkAccess: enablePrivateEndpoints ? 'Disabled' : 'Enabled'
     tags: tags
-    // roleAssignments: [
-    //   {
-    //     principalId: workloadIdentity.outputs.principalId
-    //     principalType: 'ServicePrincipal'
-    //     roleDefinitionId: roles.storageBlobDataContributor
-    //   }
-    // ]
     deleteRetentionPolicy: {
       enabled: true
       days: 5
