@@ -437,7 +437,7 @@ output required_roleAssignments array = [
     principalId: aks.outputs.webappRoutingIdentityPrincipalId
     principalType: 'ServicePrincipal'
     rolename: 'Private DNS Zone Contributor'
-    roledefinitionId: rolesToAssign.privateDnsZoneContributor
+    roleDefinitionId: rolesToAssign.privateDnsZoneContributor
   }
   {
     scope: {
