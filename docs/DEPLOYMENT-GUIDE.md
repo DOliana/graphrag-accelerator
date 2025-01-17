@@ -96,6 +96,7 @@ In the `deploy.parameters.json` file, provide values for the following required 
 `AISEARCH_ENDPOINT_SUFFIX`             |                                           | No  | Suffix to apply to AI search endpoint. Will default to `search.windows.net` for Azure Commercial cloud but should be overridden for deployments in other Azure clouds.
 `AISEARCH_AUDIENCE`                    |                                           | No  | Audience for AAD for AI Search. Will default to `https://search.azure.com/` for Azure Commercial cloud but should be overridden for deployments in other Azure clouds.
 `REPORTERS`                            | blob,console,app_insights                 | No  | The type of logging to enable. A comma separated string containing any of the following values: `[blob,console,file,app_insights]`. Will default to `"blob,console,app_insights"`.
+`ADMIN_USER_ID`                        | <GUID of user>                            | No  | The id of this user will be given the admin role on the AKS cluster
 
 ### 5. Deploy solution accelerator to the resource group
 ```shell
