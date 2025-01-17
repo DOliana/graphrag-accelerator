@@ -47,7 +47,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
     minimumTlsVersion: minimumTlsVersion
     networkAcls: {
       bypass: 'AzureServices'
-      defaultAction: 'Allow'
+      defaultAction: publicNetworkAccess == 'Disabled' ? 'Deny' : 'Allow'
     }
     publicNetworkAccess: publicNetworkAccess
   }
