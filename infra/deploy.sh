@@ -19,6 +19,7 @@ RESOURCE_BASE_NAME=""
 REPORTERS=""
 GRAPHRAG_COGNITIVE_SERVICES_ENDPOINT=""
 CONTAINER_REGISTRY_NAME=""
+ADMIN_USER_ID=""
 
 requiredParams=(
     LOCATION
@@ -252,6 +253,14 @@ populateOptionalParams () {
         GRAPHRAG_IMAGE="graphrag:backend"
         printf "\tsetting GRAPHRAG_IMAGE=$GRAPHRAG_IMAGE\n"
     fi
+    if [ -z "$ADMIN_USER_ID" ]; then
+        local deployerPrincipalId=$(az ad signed-in-user show --output json | jq -r .id)
+        exitIfValueEmpty $deployerPrincipalId "Principal ID of deployer not found"
+        ADMIN_USER_ID="$deployerPrincipalId"
+        printf "\tsetting ADMIN_USER_ID=$ADMIN_USER_ID\n"
+    else
+        printf "\tusing config value ADMIN_USER_ID=$ADMIN_USER_ID\n"
+    fi
     printf "Done.\n"
 }
 
@@ -336,9 +345,6 @@ deployAzureResources () {
     echo "Deploying Azure resources..."
     local SSH_PUBLICKEY=$(jq -r .publicKey <<< $SSHKEY_DETAILS)
     exitIfValueEmpty "$SSH_PUBLICKEY" "Unable to read ssh publickey, exiting..."
-    # get principal/object id of the signed in user
-    local deployerPrincipalId=$(az ad signed-in-user show --output json | jq -r .id)
-    exitIfValueEmpty $deployerPrincipalId "Principal ID of deployer not found"
     local datetime="`date +%Y-%m-%d_%H-%M-%S`"
     local deployName="graphrag-deploy-$datetime"
     echo "Deployment name: $deployName"
@@ -355,7 +361,7 @@ deployAzureResources () {
         --parameters "publisherEmail=$PUBLISHER_EMAIL" \
         --parameters "enablePrivateEndpoints=$ENABLE_PRIVATE_ENDPOINTS" \
         --parameters "acrName=$CONTAINER_REGISTRY_NAME" \
-        --parameters "deployerPrincipalId=$deployerPrincipalId" \
+        --parameters "deployerPrincipalId=$ADMIN_USER_ID" \
         --output json)
     # errors in deployment may not be caught by exitIfCommandFailed function so we also check the output for errors
     exitIfCommandFailed $? "Error deploying Azure resources..."
